@@ -16,11 +16,13 @@ const setup = (store) => {
   }
 
   async function regenerateAccessTokenFromRefreshToken() {
-    const response = await axios({
-      withCredentials: true,
-      method: "POST",
-      url: `/api/refreshToken`,
-    });
+    const response = await axiosInstance.get("/api/refreshToken");
+    // const response = await axios({
+    //   method: "GET",
+    //   url: `/api/refreshToken`,
+    //   withCredentials: true,
+    // });
+    console.log("Respone Generate Token", response.headers);
 
     return response;
   }
@@ -45,22 +47,23 @@ const setup = (store) => {
           const bearer = `Bearer ${accessToken}`;
 
           axiosInstance.defaults.headers.common["Authorization"] = bearer;
+          console.log("Intercepor headers", response.headers);
 
-        //   const responseCookie = setCookie.parse(
-        //     response.headers["set-cookie"]
-        //   )[0];
-        //   axiosInstance.defaults.headers["setCookie"] =
-        //     response.headers["set-cookie"];
-        //   axiosInstance.defaults.headers.common["cookie"] = cookie.serialize(
-        //     responseCookie.name,
-        //     responseCookie.value
-        //   );
+          //   const responseCookie = setCookie.parse(
+          //     response.headers["set-cookie"]
+          //   )[0];
+          //   axiosInstance.defaults.headers["setCookie"] =
+          //     response.headers["set-cookie"];
+          //   axiosInstance.defaults.headers.common["cookie"] = cookie.serialize(
+          //     responseCookie.name,
+          //     responseCookie.value
+          //   );
           dispatch(updateAccessToken({ token: accessToken }));
           error.config.headers["Authorization"] = bearer;
           return axiosInstance.request(error.config);
         }
       } catch (err) {
-        console.log("Interceptor Error", err);
+        // console.log("Interceptor Error", err);
         // need to logout user
         dispatch(reset());
       }

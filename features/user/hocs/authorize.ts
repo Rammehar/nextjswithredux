@@ -5,6 +5,21 @@ import axios from "../../../shared/infra/services/axiosInstance";
 import { getCurrentUserProfile } from "../redux/userSlice";
 import { updateAccessToken, reset } from "../redux/userSlice";
 
+function refreshTokenExist(cookies): boolean {
+  let myCookies = [];
+  const cookiesList: string[] = cookies.split(`;`);
+  cookiesList.forEach(function (cookie) {
+    let [name, ...rest] = cookie.split(`=`);
+    name = name?.trim();
+    myCookies.push(name);
+  });
+
+  if (myCookies.includes("refreshToken")) {
+    return true;
+  }
+  return false;
+}
+
 export const authorize = async ({ store, context, callback }: any) => {
   const { accessToken } = store.getState().user;
 
@@ -15,27 +30,29 @@ export const authorize = async ({ store, context, callback }: any) => {
     if (accessToken) {
       axios.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
     }
+
     if (context.req.headers.cookie) {
-      if (!accessToken) {
-        try {
-          const response = await axios.post("/api/refreshToken");
-          const newAccessToken = response.data.accessToken;
-          // console.log("RefreshToken Headers Server", response.headers);
-          const responseCookie = setCookie.parse(
-            response.headers["set-cookie"]
-          )[0];
-          axios.defaults.headers.common["cookie"] = cookie.serialize(
-            responseCookie.name,
-            responseCookie.value
-          );
-          axios.defaults.headers.common[
-            "Authorization"
-          ] = `Bearer ${newAccessToken}`;
-          context.res.setHeader("set-cookie", response.headers["set-cookie"]);
-          console.log("Server Token", newAccessToken);
-          store.dispatch(updateAccessToken({ token: newAccessToken }));
-        } catch (err) {
-          store.dispatch(reset());
+      if (refreshTokenExist(context.req.headers.cookie)) {
+        if (!accessToken) {
+          try {
+            const response = await axios.post("/api/refreshToken");
+            const newAccessToken = response.data.accessToken;
+            // console.log("RefreshToken Headers Server", response.headers);
+            const responseCookie = setCookie.parse(
+              response.headers["set-cookie"]
+            )[0];
+            axios.defaults.headers.common["cookie"] = cookie.serialize(
+              responseCookie.name,
+              responseCookie.value
+            );
+            axios.defaults.headers.common[
+              "Authorization"
+            ] = `Bearer ${newAccessToken}`;
+            context.res.setHeader("set-cookie", response.headers["set-cookie"]);
+            store.dispatch(updateAccessToken({ token: newAccessToken }));
+          } catch (err) {
+            store.dispatch(reset());
+          }
         }
       }
     }
@@ -72,10 +89,12 @@ export const user = ({ callback }: any) =>
       store,
       context,
       callback: async (...props) => {
-        if (!context.req.headers.cookie) {
-          store.dispatch(reset());
-        } else if (!store.getState().user.user) {
-          await store.dispatch(getCurrentUserProfile());
+        if (context.req.headers.cookie) {
+          if (!refreshTokenExist(context.req.headers.cookie)) {
+            store.dispatch(reset());
+          } else if (!store.getState().user.user) {
+            await store.dispatch(getCurrentUserProfile());
+          }
         }
         return callback(...props);
       },

@@ -7,8 +7,8 @@ import * as setCookie from "set-cookie-parser";
 
 // Create axios instance.
 const axiosInstance = axios.create({
-  baseURL: "http://localhost:3000",
   withCredentials: true,
+  baseURL: "http://localhost:3000",
 });
 
 // // Create axios interceptor

@@ -11,8 +11,7 @@ export default async function handler(req: any, res: NextApiResponse) {
         headers,
       }
     );
-    console.log("API Headers", returnedHeaders);
-    //  Update headers on requester using headers from Node.js server response
+     //  Update headers on requester using headers from Node.js server response
     Object.keys(returnedHeaders).forEach((key) =>
       res.setHeader(key, returnedHeaders[key])
     );
